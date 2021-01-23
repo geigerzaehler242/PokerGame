@@ -47,6 +47,8 @@ class Card {
     
 public:
     
+    Card() {}
+    
     Card(const char rankChar, const char suitChar) {
         
         if(suitChar == 'h') {
@@ -131,7 +133,7 @@ public:
         return rankLow;
     }
     
-    CardSuit getSuit() {
+    CardSuit getSuit() const {
         return suit;
     }
     
@@ -152,7 +154,7 @@ enum GameIndicies {
     lengthBoard = 14
 };
 
-void getGamesQueue(std::string inputFile, std::queue<std::string> &gamesQueue) {
+void getGamesQueue(const std::string &inputFile, std::queue<std::string> &gamesQueue) {
     
     std::string line;
     std::ifstream myfile (inputFile);
@@ -172,7 +174,7 @@ void getGamesQueue(std::string inputFile, std::queue<std::string> &gamesQueue) {
     
 }
 
-void createHandCardVector(std::string handString, std::vector<Card> &handCardVector) {
+void createHandCardVector(const std::string &handString, std::vector<Card> &handCardVector) {
     
     for(int i = 0; i < handString.size(); ) {
         
@@ -181,7 +183,7 @@ void createHandCardVector(std::string handString, std::vector<Card> &handCardVec
     }
 }
 
-void getHandsAndBoard(std::string gameString, std::vector<Card> &handAVector, std::vector<Card> &handBVector, std::vector<Card> &boardVector) {
+void getHandsAndBoard(const std::string &gameString, std::vector<Card> &handAVector, std::vector<Card> &handBVector, std::vector<Card> &boardVector) {
     
     std::string handAString = "";
     std::string handBString = "";
@@ -206,7 +208,7 @@ void getHandsAndBoard(std::string gameString, std::vector<Card> &handAVector, st
     
 }
 
-bool allCardsSameSuit(std::vector<Card> &playersHand) {
+bool allCardsSameSuit(const std::vector<Card> &playersHand) {
     
     CardSuit previousSuit = playersHand[0].getSuit();
     
@@ -273,7 +275,36 @@ bool straightCardsAceLow(std::vector<Card> playersHand) {
     return consecutive;
 }
 
-HighPokerHand findHighestHand( std::vector<Card> &playersHand) {
+RankHigh findHighRank(const std::vector<Card> &playersHand, int cardsCount) {
+    
+    std::map<RankHigh, int> cardCountMap;
+    std::map<RankHigh, int>::reverse_iterator pMap;
+    
+    for(auto & card : playersHand) {
+        cardCountMap[card.getRankHigh()]++;
+    }
+    pMap = cardCountMap.rbegin();
+    
+    RankHigh highestCardCountRank = pMap->first;
+    
+    return highestCardCountRank;
+}
+
+Card findHighCard(std::vector<Card> playersHand) {
+    
+    Card highCard;
+    
+    std::sort(playersHand.begin(), playersHand.end(), [](const Card & a, const Card & b) -> bool
+    {
+        return a.getRankLow() < b.getRankLow();
+    });
+    
+    highCard = playersHand[0];
+    
+    return highCard;
+}
+
+HighPokerHand findHighestHand(const std::vector<Card> &playersHand, Card &highCard, RankHigh &highRank) {
     std::vector<int> rankCountVector(RankCount);
 
     for (auto &card : playersHand) {
@@ -292,14 +323,22 @@ HighPokerHand findHighestHand( std::vector<Card> &playersHand) {
         return HighPokerHand::StraightFlush;
     }
     
-    if (count_rank_counts(4) == 1) return HighPokerHand::FourOfAKind;
-
+    if (count_rank_counts(4) == 1) {
+        return HighPokerHand::FourOfAKind;
+    }
+    
     if (count_rank_counts(3) == 1) {
-        if (count_rank_counts(2) == 1) return HighPokerHand::FullHouse;
-        else return HighPokerHand::ThreeOfAKind;
+        if (count_rank_counts(2) == 1) {
+        highRank = findHighRank(playersHand, 3);
+            return HighPokerHand::FullHouse;
+        }
+        else {
+            return HighPokerHand::ThreeOfAKind;
+        }
     }
     
     if(allCardsSameSuit(playersHand)) {
+        highCard = findHighCard(playersHand);
         return HighPokerHand::Flush;
     }
         
@@ -308,9 +347,13 @@ HighPokerHand findHighestHand( std::vector<Card> &playersHand) {
         return HighPokerHand::Straight;
     }
 
-    if (count_rank_counts(2) == 1) return HighPokerHand::OnePair;
-    if (count_rank_counts(2) == 2) return HighPokerHand::TwoPair;
-
+    if (count_rank_counts(2) == 1) {
+        return HighPokerHand::OnePair;
+    }
+    if (count_rank_counts(2) == 2) {
+        highRank = findHighRank(playersHand, 2);
+        return HighPokerHand::TwoPair;
+    }
     return HighPokerHand::HighCard;
 }
 
@@ -331,8 +374,10 @@ void cardsPermutation(std::vector<Card> cards, size_t startIndex, size_t endInde
     }
 }
 
-HighPokerHand findHighestHandCombination(std::vector<std::vector<Card>> &handXCardsPermutationVector,
-                                         std::vector<std::vector<Card>> &boardCardsPermutationVector) {
+HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &handXCardsPermutationVector,
+                                         const std::vector<std::vector<Card>> &boardCardsPermutationVector,
+                                         Card &highCard,
+                                         RankHigh &highRank) {
     
     HighPokerHand highestHand = HighPokerHand::HighCard;
     
@@ -352,10 +397,13 @@ HighPokerHand findHighestHandCombination(std::vector<std::vector<Card>> &handXCa
             handXCardsVector.push_back(boardPermutation[1]);
             handXCardsVector.push_back(boardPermutation[2]);
             
-            handX = findHighestHand(handXCardsVector);
+            handX = findHighestHand(handXCardsVector, highCard, highRank);
             if(handX > highestHand) {
                 highestHand = handX;
             }
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
         }
         handXCardsVector.clear();
     }
@@ -365,20 +413,51 @@ HighPokerHand findHighestHandCombination(std::vector<std::vector<Card>> &handXCa
 
 
 //A player must combine any two of his cards with any three cards from the board to obtain 5 cards with the highest possible ranking for high hand,
-std::string playHiHandGame(std::vector<std::vector<Card>> &handACardsPermutationVector,
-                           std::vector<std::vector<Card>> &handBCardsPermutationVector,
-                           std::vector<std::vector<Card>> &boardCardsPermutationVector) {
+std::string playHiHandGame(const std::vector<std::vector<Card>> &handACardsPermutationVector,
+                           const std::vector<std::vector<Card>> &handBCardsPermutationVector,
+                           const std::vector<std::vector<Card>> &boardCardsPermutationVector) {
     
     std::string winningHandString = "";
     
-    HighPokerHand highestHandA = findHighestHandCombination(handACardsPermutationVector, boardCardsPermutationVector);
-    HighPokerHand highestHandB = findHighestHandCombination(handBCardsPermutationVector, boardCardsPermutationVector);
+    Card highCardA, kickerA;
+    Card highCardB, kickerB;
+    RankHigh highRankA, highRankB;
+    
+    HighPokerHand highestHandA = findHighestHandCombination(handACardsPermutationVector, boardCardsPermutationVector, highCardA, highRankA);
+    HighPokerHand highestHandB = findHighestHandCombination(handBCardsPermutationVector, boardCardsPermutationVector, highCardB, highRankB);
      
     if(highestHandA > highestHandB) {
         winningHandString = "=> HandA wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
     }
     else if(highestHandA == highestHandB) {
-        winningHandString = "=> Split Pot Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
+   
+//check full house, flush, straight high rank
+//check 2 pair high rank
+        
+        if(highCardA.getRankHigh() > highCardB.getRankHigh()) {
+            winningHandString = "=> HandA wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
+        }
+        else if(highCardA.getRankHigh() < highCardB.getRankHigh()) {
+            winningHandString = "=> HandB wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandB)] + "; ";
+        }
+        else {
+            
+            if() {
+                
+            }
+            
+            if(kickerA.getRankHigh() == kickerB.getRankHigh()) {
+                winningHandString = "=> Split Pot Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
+            }
+            else if(kickerA.getRankHigh() > kickerB.getRankHigh()) {
+                winningHandString = "=> HandA wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
+            }
+            else {
+                winningHandString = "=> HandB wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandB)] + "; ";
+            }
+            
+            winningHandString = "=> Split Pot Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
+        }
     }
     else {
         winningHandString = "=> HandB wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandB)] + "; ";
