@@ -117,13 +117,13 @@ public:
             rankHigh = RankHigh::Ace;
             rankLow = RankLow::Ace;
         }
-        
     }
     
-//    bool operator< ( const Card &c2)
-//    {
-//        return this->rankHigh < c2.rankHigh;;
-//    }
+    bool operator==(const Card & r) const
+    {
+        if (rankHigh == r.rankHigh && suit == r.suit && rankLow == r.rankLow) return true;
+        else return false;
+    }
     
     RankHigh getRankHigh() const {
         return rankHigh;
@@ -161,10 +161,10 @@ void getGamesQueue(const std::string &inputFile, std::queue<std::string> &gamesQ
     
     if (myfile.is_open()) {
         
-        std::cout << "input file: " << std::endl;
+        //std::cout << "input file: " << std::endl;
         
         while ( getline (myfile, line) ) {
-            std::cout << line << std::endl;
+            //std::cout << line << std::endl;
             gamesQueue.push(line);
         }
         myfile.close();
@@ -429,51 +429,6 @@ void cardsPermutation(std::vector<Card> cards, size_t startIndex, size_t endInde
     }
 }
 
-HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &handXCardsPermutationVector,
-                                         const std::vector<std::vector<Card>> &boardCardsPermutationVector,
-                                         Card &highCard,
-                                         RankHigh &highRank,
-                                         std::vector<Card> &highHandCards) {
-    
-    HighPokerHand highestHand = HighPokerHand::HighCard;
-    
-    HighPokerHand handX;
-    
-    std::vector<Card> handXCardsVector;
-    std::vector<Card> boardCardsVector;
-    
-    for(auto  cardPermutation : handXCardsPermutationVector) {
-        
-        handXCardsVector.push_back(cardPermutation[0]);
-        handXCardsVector.push_back(cardPermutation[1]);
-        
-        for(auto  boardPermutation : boardCardsPermutationVector) {
-            
-            handXCardsVector.push_back(boardPermutation[0]);
-            handXCardsVector.push_back(boardPermutation[1]);
-            handXCardsVector.push_back(boardPermutation[2]);
-            
-            handX = findHighestHand(handXCardsVector, highCard, highRank);
-            
-            if(handX == highestHand) {
-                
-                //need to compare similar hands for higher kicker etc...
-            }
-            
-            if(handX > highestHand) {
-                highestHand = handX;
-                highHandCards = handXCardsVector;
-            }
-            handXCardsVector.pop_back();
-            handXCardsVector.pop_back();
-            handXCardsVector.pop_back();
-        }
-        handXCardsVector.clear();
-    }
-    
-    return highestHand;
-}
-
 //highest card not being held in common
 std::string processKicker(std::vector<Card> highHandCardsA, std::vector<Card> highHandCardsB, HighPokerHand highestHandA, HighPokerHand highestHandB) {
 
@@ -520,6 +475,58 @@ std::string processKicker(std::vector<Card> highHandCardsA, std::vector<Card> hi
 
     return winningHandString;
 }
+
+
+HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &handXCardsPermutationVector,
+                                         const std::vector<std::vector<Card>> &boardCardsPermutationVector,
+                                         Card &highCard,
+                                         RankHigh &highRank,
+                                         std::vector<Card> &highHandCards) {
+    
+    HighPokerHand highestHand = HighPokerHand::HighCard;
+    
+    HighPokerHand handX;
+    
+    std::vector<Card> handXCardsVector;
+    std::vector<Card> boardCardsVector;
+    
+    for(auto  cardPermutation : handXCardsPermutationVector) {
+        
+        handXCardsVector.push_back(cardPermutation[0]);
+        handXCardsVector.push_back(cardPermutation[1]);
+        
+        for(auto  boardPermutation : boardCardsPermutationVector) {
+            
+            handXCardsVector.push_back(boardPermutation[0]);
+            handXCardsVector.push_back(boardPermutation[1]);
+            handXCardsVector.push_back(boardPermutation[2]);
+            
+            handX = findHighestHand(handXCardsVector, highCard, highRank);
+            
+            if(handX == highestHand && highHandCards != handXCardsVector) {
+                
+                //need to compare similar hands for higher kicker etc...
+                std::string testForNewHighHand = processKicker(handXCardsVector, highHandCards, highestHand, highestHand);
+                size_t found = testForNewHighHand.find("HandA");
+                if (found != std::string::npos) {
+                    highHandCards = handXCardsVector;
+                }
+            }
+            
+            if(handX > highestHand) {
+                highestHand = handX;
+                highHandCards = handXCardsVector;
+            }
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
+        }
+        handXCardsVector.clear();
+    }
+    
+    return highestHand;
+}
+
 
 //A player must combine any two of his cards with any three cards from the board to obtain 5 cards with the highest possible ranking for high hand,
 std::string playHiHandGame(const std::vector<std::vector<Card>> &handACardsPermutationVector,
@@ -669,12 +676,16 @@ int main(int argc, const char * argv[]) {
         cardsPermutation( handBVector, 0, handBVector.size() - 1, handBCardsPermutationVector);
         cardsPermutation( boardVector, 0, boardVector.size() - 1, boardCardsPermutationVector);
         
-
+        outputString += gameString;
+        outputString += '\n';
+        
         std::string outputLine = playHiHandGame(handACardsPermutationVector, handBCardsPermutationVector, boardCardsPermutationVector);
         
         outputString += outputLine;
         
 //and combine any other (or same) two of his cards with any other (or same) three cards from the board to obtain 5 cards with lowest possible low hand.
+//        outputLine = playLoHandGame(handACardsPermutationVector, handBCardsPermutationVector, boardCardsPermutationVector);
+//        outputString += outputLine;
         
         outputString += '\n';
         
