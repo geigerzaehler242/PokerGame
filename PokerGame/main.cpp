@@ -633,7 +633,6 @@ std::string playHiHandGame(const std::vector<std::vector<Card>> &handACardsPermu
                 winningHandString = "=> HandB wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandB)] + "; ";
             }
             else {
-//                    winningHandString = "=> Split Pot Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
                 winningHandString = processKicker(highHandCardsA, highHandCardsB, highestHandA, highestHandB);
             }
         }
