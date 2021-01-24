@@ -628,6 +628,7 @@ int main(int argc, const char * argv[]) {
     
     std::string inputFile;
     std::string outputFile;
+    std::string outputString;
     
     if(argc == 3) {
         inputFile = argv[1];
@@ -660,7 +661,7 @@ int main(int argc, const char * argv[]) {
         std::sort(handBVector.begin(), handBVector.end(), sortLambda);
         std::sort(boardVector.begin(), boardVector.end(), sortLambda);
         
-        std::vector<std::vector<Card>> handACardsPermutationVector;
+        std::vector<std::vector<Card>> handACardsPermutationVector; //sort for hi cards to low cards rank
         std::vector<std::vector<Card>> handBCardsPermutationVector;
         std::vector<std::vector<Card>> boardCardsPermutationVector;
         
@@ -671,16 +672,20 @@ int main(int argc, const char * argv[]) {
 
         std::string outputLine = playHiHandGame(handACardsPermutationVector, handBCardsPermutationVector, boardCardsPermutationVector);
         
+        outputString += outputLine;
+        
 //and combine any other (or same) two of his cards with any other (or same) three cards from the board to obtain 5 cards with lowest possible low hand.
         
-        
+        outputString += '\n';
         
         gamesQueue.pop();
     }
     
+    std::cout << outputString << std::endl;
     
-    
-    std::tuple<Card, HighPokerHand> junk = std::make_tuple(Card('K','s'), HighPokerHand::FullHouse);
+    std::ofstream ofs (outputFile, std::ofstream::out);
+    ofs << outputString;
+    ofs.close();
     
     return 0;
 }
