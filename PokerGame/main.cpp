@@ -397,12 +397,12 @@ HighPokerHand findHighestHand(const std::vector<Card> &playersHand, Card &highCa
         ++rankCountVector[cardRank];
     }
 
-    auto count_rank_counts = [&] (int count) {
-        long rankCount = std::count(rankCountVector.begin(), rankCountVector.end(), count);
+    auto rankCountCounter = [&] (int countTarget) {
+        long rankCount = std::count(rankCountVector.begin(), rankCountVector.end(), countTarget);
         return rankCount;
     };
 
-    //straight flush
+    //Straight Flush
     if(allCardsSameSuit(playersHand) && straightCardsAceHigh(playersHand) ) {
         highCard = findHighCardAceHigh(playersHand);
         return HighPokerHand::StraightFlush;
@@ -413,15 +413,15 @@ HighPokerHand findHighestHand(const std::vector<Card> &playersHand, Card &highCa
     }
     
     //4 of a kind
-    if (count_rank_counts(4) == 1) {
+    if (rankCountCounter(4) == 1) {
         highRank = findHighRank(playersHand);
         return HighPokerHand::FourOfAKind;
     }
     
-    if (count_rank_counts(3) == 1) {
-        //Full house
+    if (rankCountCounter(3) == 1) {
+        //Full House
         highRank = findHighRank(playersHand);
-        if (count_rank_counts(2) == 1) {
+        if (rankCountCounter(2) == 1) {
             return HighPokerHand::FullHouse;
         }
         else {
@@ -446,17 +446,17 @@ HighPokerHand findHighestHand(const std::vector<Card> &playersHand, Card &highCa
     }
 
     //1 pair
-    if (count_rank_counts(2) == 1) {
+    if (rankCountCounter(2) == 1) {
         highRank = findHighRank(playersHand);
         return HighPokerHand::OnePair;
     }
     
     //2 pair
-    if (count_rank_counts(2) == 2) {
+    if (rankCountCounter(2) == 2) {
         highRank = findHighRank(playersHand);
         return HighPokerHand::TwoPair;
     }
-    
+    //High Card
     highCard = findHighCardAceHigh(playersHand);
     return HighPokerHand::HighCard;
 }
