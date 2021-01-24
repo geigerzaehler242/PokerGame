@@ -15,10 +15,45 @@
 #include <map>
 #include <cmath>
 
+
+
+enum class RankHigh {
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King,
+    Ace
+};
+enum class RankLow {
+    Ace,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Jack,
+    Queen,
+    King
+};
+enum class CardSuit {
+    Spades,
+    Diamonds,
+    Hearts,
+    Clubs
+};
 const static int RankCount = 13;
-enum class CardSuit {Spades, Diamonds, Hearts, Clubs};
-enum class RankHigh {Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace};
-enum class RankLow {Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King};
 
 enum class HighPokerHand {
     HighCard,       //AhKsQhJc9h
@@ -383,9 +418,8 @@ HighPokerHand findHighestHand(const std::vector<Card> &playersHand, Card &highCa
         return HighPokerHand::FourOfAKind;
     }
     
-    
     if (count_rank_counts(3) == 1) {
-        //full house
+        //Full house
         highRank = findHighRank(playersHand);
         if (count_rank_counts(2) == 1) {
             return HighPokerHand::FullHouse;
@@ -505,12 +539,14 @@ HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &h
     std::vector<Card> handXCardsVector;
     std::vector<Card> boardCardsVector;
     
-    for(auto  cardPermutation : handXCardsPermutationVector) {
+    Card currentHighCard = Card('2', 's');
+    
+    for(auto &cardPermutation : handXCardsPermutationVector) {
         
         handXCardsVector.push_back(cardPermutation[0]);
         handXCardsVector.push_back(cardPermutation[1]);
         
-        for(auto  boardPermutation : boardCardsPermutationVector) {
+        for(auto &boardPermutation : boardCardsPermutationVector) {
             
             handXCardsVector.push_back(boardPermutation[0]);
             handXCardsVector.push_back(boardPermutation[1]);
@@ -520,11 +556,22 @@ HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &h
             
             if(handX == highestHand && highHandCards != handXCardsVector) {
                 
-                //need to compare similar hands for higher kicker etc...
-                std::string testForNewHighHand = processKicker(handXCardsVector, highHandCards, highestHand, highestHand);
-                size_t found = testForNewHighHand.find("HandA");
-                if (found != std::string::npos) {
-                    highHandCards = handXCardsVector;
+                if(handX == HighPokerHand::StraightFlush ||
+                   handX == HighPokerHand::Straight) {
+                    
+                    if(highCard.getRankHigh() > currentHighCard.getRankHigh()) {
+                        highHandCards = handXCardsVector;
+                        currentHighCard = highCard;
+                    }
+                }
+                else {
+                
+                    //need to compare similar hands for higher kicker etc...
+                    std::string testForNewHighHand = processKicker(handXCardsVector, highHandCards, highestHand, highestHand);
+                    size_t found = testForNewHighHand.find("HandA");
+                    if (found != std::string::npos) {
+                        highHandCards = handXCardsVector;
+                    }
                 }
             }
             
@@ -538,6 +585,13 @@ HighPokerHand findHighestHandCombination(const std::vector<std::vector<Card>> &h
         }
         handXCardsVector.clear();
     }
+    
+    if(highestHand == HighPokerHand::StraightFlush ||
+       highestHand == HighPokerHand::Straight) {
+        
+        highCard = currentHighCard;
+    }
+    
     
     return highestHand;
 }
