@@ -13,11 +13,13 @@
 #include <tuple>
 #include <set>
 #include <map>
+#include <cmath>
 
 const static int RankCount = 13;
 enum class CardSuit {Spades, Diamonds, Hearts, Clubs};
 enum class RankHigh {Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King, Ace};
 enum class RankLow {Ace, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten, Jack, Queen, King};
+
 enum class HighPokerHand {
     HighCard,       //AhKsQhJc9h
     OnePair,        //AsAhKhQhJd
@@ -29,6 +31,12 @@ enum class HighPokerHand {
     FourOfAKind,    //KhKdKsKcAh
     StraightFlush   //8h9hThJhQh
 };
+
+enum class LowPokerHand {
+    DoesNotQualify,       //ATQ23
+    DoesQualify        //5432A
+};
+
 const static std::vector<std::string> HighPokerHandStringVector = {
     "(High Card)",
     "(One Pair)",
@@ -40,8 +48,6 @@ const static std::vector<std::string> HighPokerHandStringVector = {
     "(4-of-a-Kind)",
     "(Straight Flush)"
 };
-
-
 
 class Card {
     
@@ -282,15 +288,24 @@ RankHigh findSecondHighRank(const std::vector<Card> &playersHand) {
     
     std::map<RankHigh, int> cardCountMap;
     std::map<RankHigh, int>::reverse_iterator pMap;
+    RankHigh highestCardCountRank;
     
     for(auto & card : playersHand) {
         cardCountMap[card.getRankHigh()]++;
     }
     pMap = cardCountMap.rbegin();
-    pMap++;
     
-    RankHigh highestCardCountRank = pMap->first;
-    
+    if(pMap->second == 2) {
+        pMap++;
+    }
+    if(pMap->second == 2) {
+        highestCardCountRank = pMap->first;
+    }
+    else {
+        pMap++;
+        highestCardCountRank = pMap->first;
+    }
+
     return highestCardCountRank;
 }
 
@@ -600,7 +615,7 @@ std::string playHiHandGame(const std::vector<std::vector<Card>> &handACardsPermu
                 }
             }
             else {
-                //highestHandA == HighPokerHand::TwoPair ||
+                //highestHandA == HighPokerHand::TwoPair
                 
                 if(highRankA > highRankB) {
                     winningHandString = "=> HandA wins Hi " + HighPokerHandStringVector[static_cast<int>(highestHandA)] + "; ";
@@ -629,9 +644,179 @@ std::string playHiHandGame(const std::vector<std::vector<Card>> &handACardsPermu
     return winningHandString;
 }
 
+
+
+
+
+
+
+LowPokerHand confirmLowHandCards(const std::vector<Card> &handXCardsVector) {
+    
+    LowPokerHand lowestHand = LowPokerHand::DoesNotQualify;
+    
+    std::map<RankLow, int> rankCountMap;
+    
+    for(auto &card : handXCardsVector) {
+    //b) None of the cards should be higher than 8. Aces are always considered to have the value of 1 for low hand evaluation.
+        if(card.getRankLow() > RankLow::Eight) {
+            return lowestHand;
+        }
+        rankCountMap[card.getRankLow()]++;
+    }
+    
+    for(auto &cardRank : rankCountMap) { //a) All 5 cards should have different rank
+        if(cardRank.second > 1) {
+            return lowestHand;
+        }
+    }
+    
+    lowestHand = LowPokerHand::DoesQualify;
+    
+    return lowestHand;
+}
+
+int convertCardVectorToInt(const std::vector<Card> &playerHand) {
+    
+    int result = 0;
+    
+    for(int i = 0; i < playerHand.size(); i++) {
+        
+        int cardValue = static_cast<int>(playerHand[i].getRankLow()) + 1;
+        
+        result *= 10;
+        result += cardValue;
+    }
+    
+    return result;
+}
+
+LowPokerHand findLowestHandCombination(const std::vector<std::vector<Card>> &handXCardsPermutationVector,
+                                         const std::vector<std::vector<Card>> &boardCardsPermutationVector,
+                                       std::vector<Card> &lowHandCards,
+                                       std::vector<int> &lowHandIntVectorX) {
+    
+    int lowestHandValue = INT_MAX;
+    
+    LowPokerHand handX = LowPokerHand::DoesNotQualify;
+    LowPokerHand lowestHandX = LowPokerHand::DoesNotQualify;
+    
+    std::vector<Card> handXCardsVector;
+    std::vector<Card> boardCardsVector;
+    std::vector<Card> tempCardsVector;
+    
+    for(auto &cardPermutation : handXCardsPermutationVector) {
+        
+        handXCardsVector.push_back(cardPermutation[0]);
+        handXCardsVector.push_back(cardPermutation[1]);
+        
+        for(auto &boardPermutation : boardCardsPermutationVector) {
+            
+            handXCardsVector.push_back(boardPermutation[0]);
+            handXCardsVector.push_back(boardPermutation[1]);
+            handXCardsVector.push_back(boardPermutation[2]);
+            
+            handX = confirmLowHandCards(handXCardsVector);
+            
+            if(handX == LowPokerHand::DoesQualify) {
+                tempCardsVector = handXCardsVector;
+
+                std::sort(tempCardsVector.begin(), tempCardsVector.end(), [](const Card & a, const Card & b) -> bool
+                {
+                    return a.getRankLow() > b.getRankLow();
+                });
+                            
+                int playerCardsHandIntValue = convertCardVectorToInt(tempCardsVector);
+                
+                if(playerCardsHandIntValue < lowestHandValue) {
+                    lowestHandValue = playerCardsHandIntValue;
+                    lowHandCards = tempCardsVector;
+                    lowestHandX = handX;
+                }
+            }
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
+            handXCardsVector.pop_back();
+        }
+        handXCardsVector.clear();
+    }
+    
+    lowHandIntVectorX.push_back(lowestHandValue);
+    
+    return lowestHandX;
+}
+
+std::string convertLoHandToString(std::vector<Card> lowHandIntVectorX) {
+    
+    std::string result = "";
+    
+    for(int i = 0; i < lowHandIntVectorX.size(); i++) {
+        
+        int cardValue = static_cast<int>(lowHandIntVectorX[i].getRankLow()) + 1;
+        
+        std::string stringValue = std::to_string(cardValue);
+        
+        if(stringValue == "1") {
+            stringValue = "A";
+        }
+        result += stringValue;
+    }
+
+    return result;
+}
+
+
+//player must combine any other (or same) two of his cards with any other (or same) three cards from the board to obtain 5 cards with lowest possible low hand.
+std::string playLoHandGame(const std::vector<std::vector<Card>> &handACardsPermutationVector,
+                           const std::vector<std::vector<Card>> &handBCardsPermutationVector,
+                           const std::vector<std::vector<Card>> &boardCardsPermutationVector) {
+    
+    std::string winningLoHandString = "";
+    
+    std::vector<Card> lowHandCardsA;
+    std::vector<Card> lowHandCardsB;
+    std::vector<int> lowHandIntVectorA;
+    std::vector<int> lowHandIntVectorB;
+    int lowHandIntValueA;
+    int lowHandIntValueB;
+    
+    LowPokerHand lowestHandA = findLowestHandCombination(handACardsPermutationVector, boardCardsPermutationVector, lowHandCardsA, lowHandIntVectorA);
+    LowPokerHand lowestHandB = findLowestHandCombination(handBCardsPermutationVector, boardCardsPermutationVector, lowHandCardsB, lowHandIntVectorB);
+    
+    lowHandIntValueA = lowHandIntVectorA[0];
+    lowHandIntValueB = lowHandIntVectorB[0];
+    
+//    Any qualified low hand beats a hand that did not qualify for low. If no hand qualifies for low, then all chips are awarded to the winner(s) of the high hand.
+    
+//If both hands qualify for low, the hand containing higher card loses, i.e. 5432A beats 86743. If senior card or cards are equal, then the first card that is different decides the hand. For example, 7632A beats 76432, because the third card for the second hand is higher than the third card for the first hand.
+    
+    
+    if(lowestHandA == LowPokerHand::DoesQualify && lowestHandB == LowPokerHand::DoesNotQualify) {
+        winningLoHandString = "HandA wins Lo (" + convertLoHandToString(lowHandCardsA) + ")";
+    }
+    else if(lowestHandA == LowPokerHand::DoesNotQualify && lowestHandB == LowPokerHand::DoesQualify) {
+        winningLoHandString = "HandB wins Lo (" + convertLoHandToString(lowHandCardsB) + ")";
+    }
+    else if(lowestHandA == LowPokerHand::DoesNotQualify && lowestHandB == LowPokerHand::DoesNotQualify) {
+        winningLoHandString = "No hand qualified for Low";
+    }
+    else if(lowHandIntValueA < lowHandIntValueB ) {
+        winningLoHandString = "HandA wins Lo (" + convertLoHandToString(lowHandCardsA) + ")";
+    }
+    else if(lowHandIntValueA > lowHandIntValueB) {
+        winningLoHandString = "HandB wins Lo (" + convertLoHandToString(lowHandCardsB) + ")";
+    }
+    else {
+        winningLoHandString = "Split Pot Lo (" + convertLoHandToString(lowHandCardsA) + ")";
+    }
+    
+    return winningLoHandString;
+}
+
+
+
 int main(int argc, const char * argv[]) {
-    // insert code here...
-    std::cout << "OMAHA Hi/Lo Game" << std::endl;
+    
+    std::cout << "OMAHA Hi/Lo Game" << std::endl << std::endl;
     
     std::string inputFile;
     std::string outputFile;
@@ -672,9 +857,9 @@ int main(int argc, const char * argv[]) {
         std::vector<std::vector<Card>> handBCardsPermutationVector;
         std::vector<std::vector<Card>> boardCardsPermutationVector;
         
-        cardsPermutation( handAVector, 0, handAVector.size() - 1, handACardsPermutationVector);
-        cardsPermutation( handBVector, 0, handBVector.size() - 1, handBCardsPermutationVector);
-        cardsPermutation( boardVector, 0, boardVector.size() - 1, boardCardsPermutationVector);
+        cardsPermutation(handAVector, 0, handAVector.size() - 1, handACardsPermutationVector);
+        cardsPermutation(handBVector, 0, handBVector.size() - 1, handBCardsPermutationVector);
+        cardsPermutation(boardVector, 0, boardVector.size() - 1, boardCardsPermutationVector);
         
         outputString += gameString;
         outputString += '\n';
@@ -683,9 +868,8 @@ int main(int argc, const char * argv[]) {
         
         outputString += outputLine;
         
-//and combine any other (or same) two of his cards with any other (or same) three cards from the board to obtain 5 cards with lowest possible low hand.
-//        outputLine = playLoHandGame(handACardsPermutationVector, handBCardsPermutationVector, boardCardsPermutationVector);
-//        outputString += outputLine;
+        outputLine = playLoHandGame(handACardsPermutationVector, handBCardsPermutationVector, boardCardsPermutationVector);
+        outputString += outputLine;
         
         outputString += '\n';
         
