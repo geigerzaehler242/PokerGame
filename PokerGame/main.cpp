@@ -2,7 +2,7 @@
 //  main.cpp
 //  PokerGame
 //
-//  Created by fernando marto on 2021-01-22.
+//
 //
 
 #include <iostream>
@@ -867,6 +867,12 @@ std::string playLoHandGame(const std::vector<std::vector<Card>> &handACardsPermu
 
 
 
+// how to use:
+// input.txt contains poker games to test
+// put input.txt file in same path as "PokerGame" executable.
+// call the program with parameters: "PokerGame input.txt output.txt"
+// output.txt contaains the results
+
 int main(int argc, const char * argv[]) {
     
     std::cout << "OMAHA Hi/Lo Game" << std::endl << std::endl;
@@ -883,10 +889,14 @@ int main(int argc, const char * argv[]) {
         std::cout << "input and output file names are required!" << std::endl;
     }
     
+    std::cout << "input file: " << inputFile << std::endl;
+    std::cout << "output file: " << outputFile << std::endl;
+    
     std::queue<std::string> gamesQueue;
     
-    
     getGamesQueue(inputFile, gamesQueue);
+    
+    std::cout << "made it to here: " << std::endl;
     
     while(gamesQueue.size() > 0) {
         
