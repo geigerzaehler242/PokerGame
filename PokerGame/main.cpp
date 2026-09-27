@@ -871,7 +871,7 @@ std::string playLoHandGame(const std::vector<std::vector<Card>> &handACardsPermu
 // input.txt contains poker games to test
 // put input.txt file in same path as "PokerGame" executable.
 // call the program with parameters: "PokerGame input.txt output.txt"
-// output.txt contaains the results
+// output.txt contains the results
 
 int main(int argc, const char * argv[]) {
     
